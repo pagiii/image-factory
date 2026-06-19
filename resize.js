@@ -1,4 +1,10 @@
-console.log("🚀 Starting resize job...");
+const {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+} = require("@aws-sdk/client-s3");
+
+const sharp = require("sharp");
 
 // ---- ENV ----
 const accessKey = process.env.R2_ACCESS_KEY_ID;
@@ -6,30 +12,69 @@ const secretKey = process.env.R2_SECRET_ACCESS_KEY;
 const bucket = process.env.R2_BUCKET;
 const key = process.env.R2_KEY;
 
-// ---- DEBUG OUTPUT ----
-console.log("R2_KEY:", key);
-console.log("R2_BUCKET:", bucket);
-
-// ---- VALIDATION ----
-if (!accessKey || !secretKey || !bucket) {
-  throw new Error("Missing R2 credentials (ACCESS_KEY / SECRET_KEY / BUCKET)");
+if (!accessKey || !secretKey || !bucket || !key) {
+  throw new Error("Missing required environment variables");
 }
 
-if (!key) {
-  throw new Error("Missing R2_KEY");
+// ---- R2 CLIENT ----
+const client = new S3Client({
+  region: "auto",
+  endpoint: process.env.R2_ENDPOINT, // optional but recommended
+  credentials: {
+    accessKeyId: accessKey,
+    secretAccessKey: secretKey,
+  },
+});
+
+// ---- STREAM TO BUFFER ----
+async function streamToBuffer(stream) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    stream.on("data", (chunk) => chunks.push(chunk));
+    stream.on("error", reject);
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+  });
 }
 
-// ---- PLACEHOLDER FLOW (SAFE TEST) ----
 async function run() {
-  console.log(`📦 Would process file: ${key}`);
-  console.log(`🪣 Bucket: ${bucket}`);
+  console.log("📥 Downloading from R2:", key);
 
-  // HERE you will later:
-  // 1. download from R2
-  // 2. resize image
-  // 3. upload back
+  // 1. DOWNLOAD
+  const file = await client.send(
+    new GetObjectCommand({
+      Bucket: bucket,
+      Key: key,
+    })
+  );
 
-  console.log("✅ Script finished successfully (test mode)");
+  const inputBuffer = await streamToBuffer(file.Body);
+
+  console.log("🧠 Resizing image...");
+
+  // 2. RESIZE
+  const outputBuffer = await sharp(inputBuffer)
+    .resize(800) // width 800px (auto height)
+    .jpeg({ quality: 80 })
+    .toBuffer();
+
+  const newKey = `resized-${key}`;
+
+  console.log("📤 Uploading as:", newKey);
+
+  // 3. UPLOAD BACK TO R2
+  await client.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: newKey,
+      Body: outputBuffer,
+      ContentType: "image/jpeg",
+    })
+  );
+
+  console.log("✅ Done! Uploaded:", newKey);
 }
 
-run();
+run().catch((err) => {
+  console.error("❌ ERROR:", err);
+  process.exit(1);
+});
