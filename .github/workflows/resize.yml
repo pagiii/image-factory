@@ -1,34 +1,25 @@
-name: Resize Image
+name: Image Resizer
 
 on:
   workflow_dispatch:
-    inputs:
-      key:
-        description: "Image name in R2 (example: drhouse.jpg)"
-        required: true
-        type: string
 
 jobs:
   resize:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 24
 
       - name: Install dependencies
-        run: npm install sharp @aws-sdk/client-s3
+        run: npm install
 
-      - name: Run resize script
+      - name: Run resizer
         run: node resize.js
         env:
-          R2_ACCESS_KEY: ${{ secrets.R2_ACCESS_KEY }}
-          R2_SECRET_KEY: ${{ secrets.R2_SECRET_KEY }}
-          R2_BUCKET: ${{ secrets.R2_BUCKET }}
-          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
-          IMAGE_KEY: ${{ github.event.inputs.key }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
