@@ -1,71 +1,35 @@
-const sharp = require("sharp");
-const {
-  S3Client,
-  GetObjectCommand,
-  PutObjectCommand,
-} = require("@aws-sdk/client-s3");
+console.log("🚀 Starting resize job...");
 
-const client = new S3Client({
-  region: "auto",
-  endpoint: process.env.R2_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY,
-    secretAccessKey: process.env.R2_SECRET_KEY,
-  },
-});
-
+// ---- ENV ----
+const accessKey = process.env.R2_ACCESS_KEY_ID;
+const secretKey = process.env.R2_SECRET_ACCESS_KEY;
 const bucket = process.env.R2_BUCKET;
-const key = process.env.IMAGE_KEY;
+const key = process.env.R2_KEY;
+
+// ---- DEBUG OUTPUT ----
+console.log("R2_KEY:", key);
+console.log("R2_BUCKET:", bucket);
+
+// ---- VALIDATION ----
+if (!accessKey || !secretKey || !bucket) {
+  throw new Error("Missing R2 credentials (ACCESS_KEY / SECRET_KEY / BUCKET)");
+}
 
 if (!key) {
   throw new Error("Missing R2_KEY");
 }
 
-if (!bucket) {
-  throw new Error("Missing R2_BUCKET");
-}
-
-console.log("Processing file:", key);
-
-async function streamToBuffer(stream) {
-  const chunks = [];
-  for await (const chunk of stream) {
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks);
-}
-
+// ---- PLACEHOLDER FLOW (SAFE TEST) ----
 async function run() {
-  console.log("📦 Downloading image...");
+  console.log(`📦 Would process file: ${key}`);
+  console.log(`🪣 Bucket: ${bucket}`);
 
-  const original = await client.send(
-    new GetObjectCommand({ Bucket: bucket, Key: key }),
-  );
+  // HERE you will later:
+  // 1. download from R2
+  // 2. resize image
+  // 3. upload back
 
-  const buffer = await streamToBuffer(original.Body);
-
-  const sizes = [300, 600];
-
-  for (const size of sizes) {
-    console.log("✂️ resizing:", size);
-
-    const resized = await sharp(buffer).resize(size).toBuffer();
-
-    const newKey = key.replace(".jpg", `_${size}.jpg`);
-
-    await client.send(
-      new PutObjectCommand({
-        Bucket: bucket,
-        Key: newKey,
-        Body: resized,
-        ContentType: "image/jpeg",
-      }),
-    );
-
-    console.log("✅ saved:", newKey);
-  }
-
-  console.log("🎉 DONE");
+  console.log("✅ Script finished successfully (test mode)");
 }
 
 run();
