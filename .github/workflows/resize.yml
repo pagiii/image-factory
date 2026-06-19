@@ -1,27 +1,17 @@
-name: Image Resizer
+name: Debug R2 Env
 
 on:
   workflow_dispatch:
 
 jobs:
-  resize:
+  test:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Run resizer
+      - name: Print env
         env:
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_BUCKET: ${{ secrets.R2_BUCKET }}
-          R2_KEY: "drhouse.jpg"
-        run: node resize.js
+          R2_KEY: drhouse.jpg
+        run: |
+          echo "R2_KEY=$R2_KEY"
