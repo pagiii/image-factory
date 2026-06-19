@@ -4,8 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       key:
-        description: "Image name in R2"
+        description: "Image name in R2 (example: drhouse.jpg)"
         required: true
+        type: string
 
 jobs:
   resize:
