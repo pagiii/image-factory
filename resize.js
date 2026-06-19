@@ -17,6 +17,16 @@ const client = new S3Client({
 const bucket = process.env.R2_BUCKET;
 const key = process.env.IMAGE_KEY;
 
+if (!key) {
+  throw new Error("Missing R2_KEY");
+}
+
+if (!bucket) {
+  throw new Error("Missing R2_BUCKET");
+}
+
+console.log("Processing file:", key);
+
 async function streamToBuffer(stream) {
   const chunks = [];
   for await (const chunk of stream) {
